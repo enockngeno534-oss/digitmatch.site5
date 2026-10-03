@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Premium Deriv WebSocket Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Optional: premium font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0b0d10;
+      --bg-elev: #12151a;
+      --panel: #161b22;
+      --panel-2: #0f1217;
+      --gold: #d0a84c;
+      --gold-2: #b8903e;
+      --text: #e8eaee;
+      --muted: #98a2b3;
+      --positive: #29c178;
+      --negative: #ff5b5b;
+      --accent: #3e7fff;
+      --shadow: 0 10px 30px rgba(0,0,0,.45);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --radius-xs: 8px;
+      --ring: 0 0 0 2px rgba(208,168,76,.28), 0 0 0 6px rgba(208,168,76,.08);
+      --outline: 1px solid rgba(208,168,76,.25);
+      --glass: rgba(255,255,255,.03);
+      --glow: 0 0 0 2px rgba(208,168,76,.28), 0 10px 25px rgba(208,168,76,.12);
+    }
+
+    *{box-sizing: border-box}
+    html,body{margin:0;height:100%;background: radial-gradient(1200px 1200px at 85% -10%, rgba(208,168,76,.09), transparent 60%), var(--bg); color:var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';}
+    a{color:inherit}
+
+    /* Layout */
+    .app{
+      display:grid;
+      grid-template-columns: 280px 1fr 360px;
+      grid-template-rows: 72px 1fr;
+      min-height:100vh;
+      gap:20px;
+      padding:20px;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      grid-row: 1 / span 2;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: var(--outline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      position:relative;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px; padding:18px 18px 16px 18px; border-bottom: 1px solid rgba(208,168,76,.18);
+      background: linear-gradient(180deg, rgba(208,168,76,.10), transparent);
+    }
+    .logo{
+      width:36px; height:36px; border-radius:10px;
+      background: radial-gradient(100% 100% at 30% 20%, rgba(208,168,76,.55), rgba(208,168,76,.25)) , linear-gradient(135deg, #292316, #15171a);
+      box-shadow: 0 6px 18px rgba(208,168,76,.22), inset 0 1px rgba(255,255,255,.15);
+      display:grid; place-items:center; position:relative; overflow:hidden;
+    }
+    .logo::after{ content:""; width:70%; height:2px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent); position:absolute; top:10px; left:15%; filter: blur(1px); }
+    .brand .title{font-weight: 800; letter-spacing:.3px}
+    .brand .subtitle{color:var(--muted); font-size:.8rem}
+
+    .nav{
+      padding:14px;
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .nav button{
+      appearance:none; border:none; cursor:pointer;
+      text-align:left; padding:12px 14px; border-radius:10px;
+      background:var(--glass); color:var(--text);
+      border:1px solid rgba(255,255,255,.05);
+      transition:.2s ease; font-weight:600;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .nav button:hover{ box-shadow: var(--glow); border-color: rgba(208,168,76,.35) }
+    .nav button.active{ background:linear-gradient(180deg, rgba(208,168,76,.10), rgba(255,255,255,.02)); border-color: rgba(208,168,76,.50); }
+
+    .sidebar-footer{
+      margin-top:auto; padding:12px 14px; border-top: 1px solid rgba(255,255,255,.06); display:flex; gap:8px; align-items:center; justify-content:space-between;
+    }
+    .endpoint-pill{
+      padding:10px 12px; border-radius:10px; background: rgba(255,255,255,.04);
+      border: 1px dashed rgba(208,168,76,.35); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.82rem; color:var(--muted);
+      max-width: 100%; overflow:hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Topbar */
+    .topbar{
+      grid-column: 2 / span 2;
+      display:flex; align-items:center; gap:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: var(--outline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:12px 14px;
+    }
+    .controls{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .spacer{ flex:1 }
+    .btn{
+      appearance:none; border:none; cursor:pointer;
+      padding:10px 14px; border-radius:10px; font-weight:700; letter-spacing:.3px;
+      background: linear-gradient(180deg, rgba(208,168,76,.22), rgba(208,168,76,.08));
+      color:var(--text); border:1px solid rgba(208,168,76,.45);
+      box-shadow: var(--glow);
+      transition:.2s ease;
+    }
+    .btn:hover{ transform: translateY(-1px) }
+    .btn.secondary{ background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.12); box-shadow: none; }
+    .btn.danger{ background: linear-gradient(180deg, rgba(255,91,91,.25), rgba(255,91,91,.08)); border-color: rgba(255,91,91,.45) }
+
+    .field{
+      display:flex; flex-direction:column; gap:6px; min-width:160px;
+      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius:10px; padding:10px 12px;
+    }
+    .field label{ font-size:.78rem; color:var(--muted)}
+    select, input[type="text"], input[type="number"], input[type="password"]{
+      appearance:none; background: transparent; border:none; color:var(--text);
+      font-size:.95rem; outline:none;
+    }
+
+    /* Main panels */
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: var(--outline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panel-header{
+      padding:12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.06);
+      background: linear-gradient(180deg, rgba(208,168,76,.06), transparent);
+    }
+    .panel-title{ font-weight: 800; letter-spacing:.3px }
+    .panel-sub{ color:var(--muted); font-size:.88rem }
+
+    .main{
+      grid-column: 2;
+      display:grid; grid-template-rows: 1fr 220px; gap:20px;
+    }
+
+    /* Chart area */
+    .chart-area{ position:relative; }
+    .chart-toolbar{
+      position:absolute; top:12px; right:12px; display:flex; gap:8px;
+      background: rgba(11,13,16,.6); padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,.08); backdrop-filter: blur(8px);
+    }
+    .chip{
+      padding:8px 10px; border-radius:8px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); font-weight:600; cursor:pointer; user-select:none;
+    }
+    .chip.active{ background: linear-gradient(180deg, rgba(208,168,76,.25), rgba(208,168,76,.10)); border-color: rgba(208,168,76,.45); box-shadow: var(--glow) }
+
+    /* Ticker panel */
+    .ticker{
+      grid-column: 3;
+      display:grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-list{
+      overflow:auto; max-height: calc(100vh - 72px - 160px);
+      padding:10px;
+    }
+    .tick{
+      display:grid; grid-template-columns: 1fr auto; align-items:center;
+      padding:10px 12px; margin-bottom:8px; border-radius:10px; background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .tick .sym{ font-weight:700; letter-spacing:.3px }
+    .tick .price{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace }
+    .tick.up { border-color: rgba(41,193,120,.45); box-shadow: 0 0 0 1px rgba(41,193,120,.15) inset }
+    .tick.down { border-color: rgba(255,91,91,.45); box-shadow: 0 0 0 1px rgba(255,91,91,.15) inset }
+
+    /* Positions tray (compact pop-up cards) */
+    .positions{
+      display:flex; gap:12px; padding:12px; overflow:auto;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+      border-top:1px solid rgba(255,255,255,.06);
+    }
+    .position-card{
+      min-width: 300px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px;
+      position:relative;
+    }
+    .position-card .row{ display:flex; justify-content:space-between; margin-bottom:6px; }
+    .position-card .hdr{ font-weight:800 }
+    .position-card .muted{ color:var(--muted); font-size:.85rem }
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px; border-radius:999px; font-size:.82rem; border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .badge.pos{ border-color: rgba(41,193,120,.4); color: var(--positive); background: rgba(41,193,120,.08) }
+    .badge.neg{ border-color: rgba(255,91,91,.4); color: var(--negative); background: rgba(255,91,91,.08) }
+
+    /* Settings drawer */
+    .drawer{
+      position: fixed; right: 20px; top: 20px; bottom: 20px; width: 420px;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: var(--outline); border-radius: var(--radius); box-shadow: var(--shadow);
+      transform: translateX(120%); transition: .26s ease; z-index: 50; overflow:auto;
+    }
+    .drawer.open{ transform: translateX(0) }
+    .drawer .content{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+    .row-gap{ display:grid; gap:10px; }
+    .switch{
+      display:inline-flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
+    }
+    .switch input{ appearance:none; width:44px; height:26px; background: rgba(255,255,255,.12); border-radius:999px; position:relative; outline:none; border:1px solid rgba(255,255,255,.15); transition:.2s }
+    .switch input::after{ content:""; position:absolute; width:20px; height:20px; border-radius:50%; background:#fff; top:2px; left:2px; transition:.2s }
+    .switch input:checked{ background: linear-gradient(180deg, rgba(208,168,76,.45), rgba(208,168,76,.20)); border-color: rgba(208,168,76,.55) }
+    .switch input:checked::after{ left:22px; }
+
+    /* Toasts */
+    .toasts{
+      position: fixed; bottom: 24px; left: 24px; display:flex; flex-direction:column; gap:10px; z-index: 60;
+    }
+    .toast{
+      background: rgba(11,13,16,.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,.08); border-left: 3px solid var(--gold);
+      color: var(--text); padding:12px 14px; border-radius:10px; box-shadow: var(--shadow);
+      max-width: 420px;
+    }
+    .toast.error{ border-left-color: var(--negative) }
+
+    /* Chart canvas */
+    canvas{ display:block; width:100%; height:100% }
+
+    /* Responsive */
+    @media (max-width: 1200px){
+      .app{ grid-template-columns: 220px 1fr; }
+      .ticker{ grid-column: 1 / span 2; grid-row: 3; }
+    }
+    @media (max-width: 880px){
+      .app{ grid-template-columns: 1fr; grid-template-rows: 72px auto auto auto; }
+      .sidebar{ grid-row:auto; grid-column: 1; }
+      .topbar{ grid-column: 1; }
+      .main{ grid-column: 1; grid-template-rows: 1fr auto; }
+      .ticker{ grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Sidebar navigation">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3l3.2 6.5 7.1 1-5.1 5 1.3 7.1L12 18.8 5.5 22.6l1.3-7.1-5.1-5 7.1-1L12 3z" fill="url(#g)"/>
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="24" y2="24">
+                <stop stop-color="#d0a84c"/><stop offset="1" stop-color="#8b6a22"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <div class="title">Premium Trading Dashboard</div>
+          <div class="subtitle">Deriv WebSocket API</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="active" type="button" aria-pressed="true"><span>Live Trading</span><span>●</span></button>
+        <button type="button" onclick="showToast('Strategy Builder coming soon')" aria-pressed="false"><span>Strategy Builder</span><span>⌘B</span></button>
+        <button type="button" onclick="showToast('Reports coming soon')" aria-pressed="false"><span>Reports</span><span>⌘R</span></button>
+        <button type="button" onclick="showToast('Settings → use the gear on the top bar')" aria-pressed="false"><span>Account</span><span>⌘A</span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="endpoint-pill" id="endpointPill" title="WebSocket endpoint">
+          wss://ws.deriv.com/websockets/v3?app_id=1089
+        </div>
+        <button class="btn secondary" id="openSettings" aria-label="Open settings">⚙️</button>
+      </div>
+    </aside>
+
+    <!-- Top bar controls -->
+    <header class="topbar" role="toolbar" aria-label="Top controls">
+      <div class="controls">
+        <div class="field" style="min-width: 220px;">
+          <label for="symbolSelect">Symbol</label>
+          <select id="symbolSelect" aria-label="Trading symbol"></select>
+        </div>
+        <div class="field">
+          <label for="granularity">Granularity</label>
+          <select id="granularity" aria-label="Chart granularity">
+            <option value="60">1m</option>
+            <option value="120">2m</option>
+            <option value="300">5m</option>
+            <option value="900">15m</option>
+            <option value="1800">30m</option>
+            <option value="3600" selected>1h</option>
+            <option value="14400">4h</option>
+            <option value="86400">1d</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Endpoint visibility</label>
+          <label class="switch">
+            <input type="checkbox" id="hideEndpointToggle" />
+            <span>Hide on dashboard</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <button class="btn secondary" id="authorizeBtn" title="Provide token in settings">Authorize</button>
+      <button class="btn" id="connectBtn">Connect</button>
+      <button class="btn danger" id="disconnectBtn" disabled>Disconnect</button>
+    </header>
+
+    <!-- Main content -->
+    <section class="main">
+      <!-- Chart panel -->
+      <div class="panel chart-area" id="chartPanel" aria-label="Candle chart">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Candle Chart</div>
+            <div class="panel-sub" id="chartSubtitle">Waiting for connection…</div>
+          </div>
+          <div class="panel-sub">
+            <span id="priceBadge" class="badge">Last: —</span>
+          </div>
+        </div>
+        <canvas id="chartCanvas" aria-label="Candlestick"></canvas>
+
+        <div class="chart-toolbar" role="group" aria-label="Chart actions">
+          <div class="chip active" id="styleCandles">Candles</div>
+          <div class="chip" id="styleLine">Line</div>
+          <div class="chip" id="refreshChart">Refresh</div>
+        </div>
+      </div>
+
+      <!-- Open positions tray -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Open Positions</div>
+          <div class="panel-sub">Authorize to load your portfolio</div>
+        </div>
+        <div class="positions" id="positionsTray" aria-live="polite">
+          <div class="panel-sub" id="positionsEmpty" style="padding:8px;">No open positions. Authorize and refresh.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ticker panel -->
+    <aside class="panel ticker" aria-label="Real-time ticker feed">
+      <div class="panel-header">
+        <div class="panel-title">Real-time Ticker</div>
+        <div class="panel-sub">Streaming last prices</div>
+      </div>
+      <div class="ticker-list" id="tickerList"></div>
+      <div style="padding:10px; border-top:1px solid rgba(255,255,255,.06); display:flex; gap:8px;">
+        <button class="btn secondary" id="clearTicker">Clear</button>
+        <button class="btn secondary" id="pauseTicker">Pause</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Settings Drawer -->
+  <div class="drawer" id="drawer" aria-hidden="true" aria-label="Settings">
+    <div class="content">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div class="panel-title">Settings</div>
+        <button class="btn secondary" id="closeSettings">Close</button>
+      </div>
+
+      <div class="row-gap">
+        <div class="field">
+          <label for="endpoint">WebSocket endpoint</label>
+          <input type="text" id="endpoint" value="wss://ws.deriv.com/websockets/v3" spellcheck="false" />
+        </div>
+
+        <div class="field">
+          <label for="appId">App ID (default 1089)</label>
+          <input type="number" id="appId" value="1089" />
+        </div>
+
+        <div class="field">
+          <label for="token">API Token (optional, for portfolio)</label>
+          <input type="password" id="token" placeholder="Enter Deriv API token" />
+        </div>
+
+        <div class="field">
+          <label>Privacy</label>
+          <label class="switch"><input type="checkbox" id="hideEndpointToggle2" /><span>Hide endpoint in dashboard footer</span></label>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn" id="saveSettings">Save</button>
+        <button class="btn secondary" id="testConnection">Test Connection</button>
+      </div>
+      <div class="panel-sub" id="settingsHint" style="margin-top:8px;">Saved locally in your browser only.</div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toasts" id="toasts"></div>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const state = {
+      connected: false,
+      endpoint: 'wss://ws.deriv.com/websockets/v3',
+      appId: 1089,
+      token: '',
+      hideEndpoint: false,
+      ws: null,
+      reconnect: {attempts: 0, max: 6, timer: null},
+      subs: { ticks: null, candles: null },
+      symbol: null,
+      tickPaused: false,
+      chart: { style: 'candles', granularity: 3600, data: [] },
+      activeSymbols: [],
+      portfolio: { contracts: [] }
+    };
+
+    function saveLocal() {
+      localStorage.setItem('deriv_dash_settings', JSON.stringify({
+        endpoint: state.endpoint,
+        appId: state.appId,
+        token: state.token,
+        hideEndpoint: state.hideEndpoint
+      }));
+    }
+    function loadLocal() {
+      const s = localStorage.getItem('deriv_dash_settings');
+      if (!s) return;
+      try {
+        const cfg = JSON.parse(s);
+        if (cfg.endpoint) state.endpoint = cfg.endpoint;
+        if (cfg.appId) state.appId = Number(cfg.appId);
+        if (cfg.token) state.token = cfg.token;
+        if (typeof cfg.hideEndpoint === 'boolean') state.hideEndpoint = cfg.hideEndpoint;
+      } catch {}
+    }
+
+    function showToast(msg, kind='info') {
+      const t = document.createElement('div');
+      t.className = 'toast' + (kind==='error' ? ' error':'');
+      t.textContent = msg;
+      $('#toasts').appendChild(t);
+      setTimeout(()=>{ t.remove(); }, 4000);
+    }
+
+    function maskEndpoint(ep, appId) {
+      try{
+        const u = new URL(ep);
+        const qs = new URLSearchParams(u.search);
+        const aid = appId ? String(appId) : qs.get('app_id');
+        return `${u.protocol}//${u.host}${u.pathname}?app_id=${aid ? '****' : ''}`.replace(/\?app_id=$/, '');
+      }catch{
+        return 'wss://********/websockets/***?app_id=****';
+      }
+    }
+
+    function updateEndpointPill() {
+      const pill = $('#endpointPill');
+      const ep = `${state.endpoint}${state.appId ? `?app_id=${state.appId}`:''}`;
+      pill.textContent = state.hideEndpoint ? maskEndpoint(state.endpoint, state.appId) : ep;
+    }
+
+    // ---------- Deriv WS Manager ----------
+    class DerivWS {
+      constructor(urlWithAppId){
+        this.url = urlWithAppId;
+        this.ws = null;
+        this.queue = [];
+        this.handlers = new Map(); // key: 'msgType' or 'req_id'
+        this.subs = new Map(); // subscription id -> callback
+      }
+      connect() {
+        return new Promise((resolve, reject) => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) return resolve();
+          this.ws = new WebSocket(this.url);
+          this.ws.onopen = () => {
+            resolve();
+            // flush queue
+            this.queue.splice(0).forEach(m => this.ws.send(m));
+          };
+          this.ws.onclose = (ev) => {
+            state.connected = false;
+            updateButtons();
+            showToast(`Disconnected (${ev.code})`);
+          };
+          this.ws.onerror = (e) => showToast('WebSocket error', 'error');
+          this.ws.onmessage = (ev) => this._onmessage(ev);
+        });
+      }
+      _onmessage(ev){
+        const msg = JSON.parse(ev.data);
+        if (msg.error) {
+          showToast(msg.error.message || 'API error', 'error');
+          return;
+        }
+        // route subscription messages
+        if (msg.subscription && msg.subscription.id) {
+          const cb = this.subs.get(msg.subscription.id);
+          if (cb) cb(msg);
+        }
+
+        // route by msg type
+        if (msg.msg_type) {
+          const h = this.handlers.get(msg.msg_type);
+          if (h) h.forEach(fn => fn(msg));
+        }
+
+        // route by req_id if present
+        if (msg.req_id && this.handlers.get(`req:${msg.req_id}`)) {
+          this.handlers.get(`req:${msg.req_id}`).forEach(fn => fn(msg));
+          this.handlers.delete(`req:${msg.req_id}`);
+        }
+      }
+      on(type, cb){
+        if (!this.handlers.has(type)) this.handlers.set(type, []);
+        this.handlers.get(type).push(cb);
+      }
+      onceByReqId(req_id, cb){
+        this.handlers.set(`req:${req_id}`, [cb]);
+      }
+      send(obj){
+        const data = JSON.stringify(obj);
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+          this.queue.push(data);
+        } else {
+          this.ws.send(data);
+        }
+      }
+      subscribeTicks(symbol, cb){
+        this.send({ ticks: symbol, subscribe: 1 });
+        // We'll get the subscription.id in the first tick message
+        const handler = (msg) => {
+          if (msg.tick && msg.subscription && msg.subscription.id) {
+            const sid = msg.subscription.id;
+            this.subs.set(sid, cb);
+            // Stop listening globally for this binding once id is registered
+            this.handlers.get('tick')?.splice(this.handlers.get('tick').indexOf(handler),1);
+          }
+          cb(msg);
+        };
+        this.on('tick', handler);
+      }
+      subscribeCandles(symbol, granularity, cb){
+        this.send({
+          ticks_history: symbol,
+          adjust_start_time: 1,
+          count: 100,
+          end: 'latest',
+          start: 1,
+          style: 'candles',
+          granularity,
+          subscribe: 1
+        });
+        const handler = (msg) => {
+          if (msg.candles && msg.subscription && msg.subscription.id) {
+            const sid = msg.subscription.id;
+            this.subs.set(sid, cb);
+            this.handlers.get('candles')?.splice(this.handlers.get('candles').indexOf(handler),1);
+          }
+          cb(msg);
+        };
+        this.on('candles', handler);
+      }
+      forget(id){
+        if (!id) return;
+        this.send({ forget: id });
+        this.subs.delete(id);
+      }
+      forgetAll(type){
+        this.send({ forget_all: type }); // 'ticks' or 'candles'
+      }
+      activeSymbols(){
+        return new Promise((res) => {
+          const req_id = Math.floor(Math.random()*1e9);
+          this.onceByReqId(req_id, (msg) => res(msg.active_symbols || []));
+          this.send({ active_symbols: 'brief', product_type: 'basic', req_id });
+        });
+      }
+      authorize(token){
+        return new Promise((res, rej) => {
+          const req_id = Math.floor(Math.random()*1e9);
+          this.onceByReqId(req_id, (msg) => {
+            if (msg.authorize) res(msg.authorize);
+            else rej(new Error('Authorize failed'));
+          });
+          this.send({ authorize: token, req_id });
+        });
+      }
+      portfolio(){
+        return new Promise((res) => {
+          const req_id = Math.floor(Math.random()*1e9);
+          this.onceByReqId(req_id, (msg) => res(msg.portfolio || {contracts: []}));
+          this.send({ portfolio: 1, req_id });
+        });
+      }
+      subscribeOpenContract(contract_id, cb){
+        this.send({ proposal_open_contract: 1, contract_id, subscribe: 1 });
+        const handler = (msg) => {
+          if (msg.proposal_open_contract && msg.subscription && msg.subscription.id) {
+            const sid = msg.subscription.id;
+            this.subs.set(sid, cb);
+            this.handlers.get('proposal_open_contract')?.splice(this.handlers.get('proposal_open_contract').indexOf(handler),1);
+          }
+          cb(msg);
+        };
+        this.on('proposal_open_contract', handler);
+      }
+    }
+
+    // ---------- Chart Renderer (Canvas) ----------
+    class CandleChart {
+      constructor(canvas){
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.data = []; // {epoch, open, high, low, close}
+        this.style = 'candles'; // or 'line'
+        this.padding = {left: 50, right: 20, top: 10, bottom: 20};
+        this.lastDrawSize = {w:0,h:0};
+        window.addEventListener('resize', () => this.resize());
+        this.resize();
+      }
+      setStyle(style){ this.style = style; this.draw(); }
+      setData(data){ this.data = data.slice(-200); this.draw(); }
+      pushOrUpdate(candle){
+        // update the last candle if epoch matches, else push
+        if (!this.data.length){ this.data.push(candle); this.draw(); return; }
+        const last = this.data[this.data.length-1];
+        if (last.epoch === candle.epoch) this.data[this.data.length-1] = candle;
+        else this.data.push(candle);
+        if (this.data.length>300) this.data.shift();
+        this.draw();
+      }
+      resize(){
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.canvas.width = Math.floor(rect.width * dpr);
+        this.canvas.height = Math.floor(rect.height * dpr);
+        this.ctx.setTransform(dpr,0,0,dpr,0,0);
+        this.draw();
+      }
+      draw(){
+        const ctx = this.ctx;
+        const w = this.canvas.clientWidth;
+        const h = this.canvas.clientHeight;
+        ctx.clearRect(0,0,w,h);
+
+        // background gradient
+        const g = ctx.createLinearGradient(0,0,0,h);
+        g.addColorStop(0, 'rgba(208,168,76,.06)');
+        g.addColorStop(1, 'rgba(208,168,76,0)');
+        ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+
+        if (!this.data.length) return;
+
+        // compute scale
+        const highs = this.data.map(d=>d.high);
+        const lows  = this.data.map(d=>d.low);
+        const max = Math.max(...highs);
+        const min = Math.min(...lows);
+        const padY = (max - min) * 0.1 || 1;
+        const top = max + padY, bottom = min - padY;
+
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,.06)';
+        ctx.lineWidth = 1;
+        const rows = 4;
+        for (let i=0;i<=rows;i++){
+          const y = this.padding.top + (h - this.padding.top - this.padding.bottom) * (i/rows);
+          ctx.beginPath(); ctx.moveTo(this.padding.left, y); ctx.lineTo(w - this.padding.right, y); ctx.stroke();
+        }
+
+        // y-axis labels
+        ctx.fillStyle = 'rgba(255,255,255,.65)';
+        ctx.font = '12px Inter, sans-serif';
+        for (let i=0;i<=rows;i++){
+          const val = top - (top-bottom) * (i/rows);
+          const y = this.padding.top + (h - this.padding.top - this.padding.bottom) * (i/rows) - 2;
+          ctx.fillText(val.toFixed(5), 6, y);
+        }
+
+        // compute candle width
+        const plotW = w - this.padding.left - this.padding.right;
+        const plotH = h - this.padding.top - this.padding.bottom;
+        const n = this.data.length;
+        const gap = 2;
+        const cw = Math.max(3, Math.min(18, Math.floor(plotW/n) - gap));
+
+        const xAt = (i) => this.padding.left + i * (cw + gap) + cw/2;
+        const yAt = (price) => this.padding.top + (top - price) * (plotH / (top - bottom));
+
+        // draw series
+        if (this.style === 'line') {
+          ctx.beginPath();
+          ctx.strokeStyle = '#d0a84c';
+          ctx.lineWidth = 2;
+          this.data.forEach((d, i) => {
+            const x = xAt(i);
+            const y = yAt(d.close);
+            if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+        } else {
+          this.data.forEach((d, i) => {
+            const x = xAt(i);
+            // wick
+            ctx.strokeStyle = d.close >= d.open ? 'rgba(41,193,120,.9)' : 'rgba(255,91,91,.9)';
+            ctx.beginPath(); ctx.moveTo(x, yAt(d.high)); ctx.lineTo(x, yAt(d.low)); ctx.stroke();
+            // body
+            const yOpen = yAt(d.open), yClose = yAt(d.close);
+            const topY = Math.min(yOpen, yClose), bodyH = Math.max(2, Math.abs(yClose - yOpen));
+            ctx.fillStyle = d.close >= d.open ? 'rgba(41,193,120,.35)' : 'rgba(255,91,91,.35)';
+            ctx.strokeStyle = d.close >= d.open ? 'rgba(41,193,120,.9)' : 'rgba(255,91,91,.9)';
+            ctx.fillRect(x - cw/2, topY, cw, bodyH);
+            ctx.strokeRect(x - cw/2, topY, cw, bodyH);
+          });
+        }
+      }
+    }
+
+    // ---------- App Logic ----------
+    let chart;
+    function updateButtons(){
+      $('#connectBtn').disabled = state.connected;
+      $('#disconnectBtn').disabled = !state.connected;
+    }
+    function applySettingsToUI(){
+      $('#endpoint').value = state.endpoint;
+      $('#appId').value = state.appId;
+      $('#token').value = state.token;
+      $('#hideEndpointToggle').checked = state.hideEndpoint;
+      $('#hideEndpointToggle2').checked = state.hideEndpoint;
+      updateEndpointPill();
+    }
+
+    function buildUrl(){
+      const url = new URL(state.endpoint);
+      if (state.appId) url.searchParams.set('app_id', String(state.appId));
+      return url.toString();
+    }
+
+    async function connect(){
+      try{
+        state.ws?.forgetAll('ticks');
+        state.ws?.forgetAll('candles');
+      }catch{}
+      const url = buildUrl();
+      state.ws = new DerivWS(url);
+      state.ws.on('tick', onTick);
+      state.ws.on('candles', onCandles);
+      state.ws.on('proposal_open_contract', onOpenContract);
+      state.connected = true;
+      updateButtons();
+
+      await state.ws.connect();
+      showToast('Connected to Deriv WebSocket');
+
+      // Load active symbols
+      const symbols = await state.ws.activeSymbols();
+      state.activeSymbols = symbols.filter(s => s.is_trading_suspended === 0);
+      populateSymbols();
+      if (!state.symbol) {
+        // Prefer R_100 if available
+        state.symbol = (state.activeSymbols.find(s => s.symbol === 'R_100') || state.activeSymbols[0])?.symbol;
+        $('#symbolSelect').value = state.symbol || '';
+      }
+
+      subscribeSymbol();
+
+      // If token provided, silently authorize
+      if (state.token) {
+        try{
+          await state.ws.authorize(state.token);
+          showToast('Authorized');
+          await loadPortfolio();
+        }catch(e){
+          showToast('Authorization failed', 'error');
+        }
+      }
+
+      updateChartSubtitle();
+    } catch(e){
+      state.connected = false;
+      updateButtons();
+      showToast('Connection failed: ' + (e.message || e), 'error');
+    }
+    }
+
+    function disconnect(){
+      try{
+        state.ws?.forgetAll('ticks');
+        state.ws?.forgetAll('candles');
+        state.ws?.ws?.close();
+      }catch{}
+      state.connected = false;
+      updateButtons();
+      showToast('Disconnected');
+    }
+
+    function populateSymbols(){
+      const sel = $('#symbolSelect');
+      sel.innerHTML = '';
+      // Group symbols by market_display_name
+      const groups = {};
+      state.activeSymbols.forEach(s => {
+        const g = s.market_display_name || 'Other';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(s);
+      });
+      Object.keys(groups).forEach(group => {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = group;
+        groups[group].sort((a,b)=> a.display_name.localeCompare(b.display_name)).forEach(s => {
+          const o = document.createElement('option');
+          o.value = s.symbol;
+          o.textContent = s.display_name;
+          optGroup.appendChild(o);
+        });
+        sel.appendChild(optGroup);
+      });
+    }
+
+    function subscribeSymbol(){
+      if (!state.connected || !state.symbol) return;
+      // Forget previous subs
+      state.ws.forgetAll('ticks');
+      state.ws.forgetAll('candles');
+      // Subscribe
+      state.ws.subscribeTicks(state.symbol, onTick);
+      state.ws.subscribeCandles(state.symbol, state.chart.granularity, onCandles);
+      $('#tickerList').innerHTML = ''; // reset ticker on symbol change
+      state.chart.data = [];
+      chart.setData([]);
+      updateChartSubtitle();
+    }
+
+    function onTick(msg){
+      if (!msg.tick) return;
+      if (state.tickPaused) return;
+      const {symbol, quote, epoch} = msg.tick;
+      // Update badge
+      $('#priceBadge').textContent = `Last: ${Number(quote).toFixed(5)}`;
+      // push to ticker list
+      const el = document.createElement('div');
+      const up = (state._lastQuote && quote >= state._lastQuote);
+      el.className = 'tick ' + (up ? 'up':'down');
+      el.innerHTML = `<div class="sym">${symbol}</div><div class="price">${Number(quote).toFixed(5)}</div>
+                      <div class="panel-sub" style="grid-column: 1 / -1;">${new Date(epoch*1000).toLocaleTimeString()}</div>`;
+      $('#tickerList').prepend(el);
+      while ($('#tickerList').children.length > 40) $('#tickerList').lastChild.remove();
+      state._lastQuote = quote;
+    }
+
+    function onCandles(msg){
+      // Initial array: msg.candles; Updates: msg.candles with 1 element
+      if (msg.candles && Array.isArray(msg.candles)) {
+        const arr = msg.candles.map(c => ({
+          epoch: c.epoch,
+          open: +c.open, high: +c.high, low: +c.low, close: +c.close
+        }));
+        // If more than 1 candle, it's initial snapshot
+        if (arr.length > 1) {
+          state.chart.data = arr;
+          chart.setData(state.chart.data);
+        } else if (arr.length === 1) {
+          chart.pushOrUpdate(arr[0]);
+        }
+      }
+    }
+
+    function updateChartSubtitle(){
+      const symName = state.activeSymbols.find(s => s.symbol === state.symbol)?.display_name || (state.symbol || '—');
+      const gran = Number(state.chart.granularity);
+      const gMap = {60:'1m', 120:'2m', 300:'5m', 900:'15m', 1800:'30m', 3600:'1h', 14400:'4h', 86400:'1d'};
+      $('#chartSubtitle').textContent = `${symName} • ${gMap[gran] || gran+'s'}`;
+    }
+
+    async function loadPortfolio(){
+      try{
+        const portfolio = await state.ws.portfolio();
+        const list = portfolio.contracts || [];
+        state.portfolio.contracts = list;
+        renderPositions(list);
+        // Subscribe each open contract for live P/L
+        list.forEach(c => {
+          state.ws.subscribeOpenContract(c.contract_id, onOpenContract);
+        });
+      }catch(e){
+        showToast('Failed to load portfolio', 'error');
+      }
+    }
+
+    function onOpenContract(msg){
+      if (!msg.proposal_open_contract) return;
+      const poc = msg.proposal_open_contract;
+      // Update or insert
+      const idx = state.portfolio.contracts.findIndex(c => c.contract_id === poc.contract_id);
+      if (idx >= 0) state.portfolio.contracts[idx] = {...state.portfolio.contracts[idx], ...poc};
+      else state.portfolio.contracts.push(poc);
+      renderPositions(state.portfolio.contracts);
+    }
+
+    function renderPositions(contracts){
+      const tray = $('#positionsTray');
+      tray.innerHTML = '';
+      if (!contracts || !contracts.length){
+        $('#positionsEmpty').style.display = 'block';
+        tray.appendChild($('#positionsEmpty'));
+        return;
+      }
+      $('#positionsEmpty').style.display = 'none';
+      contracts.forEach(c => {
+        const pnl = Number(c.profit || c.profit_percentage || 0);
+        const isPos = pnl >= 0;
+        const el = document.createElement('div');
+        el.className = 'position-card';
+        el.innerHTML = `
+          <div class="row">
+            <div class="hdr">${c.longcode ? c.longcode.split(' ').slice(0,4).join(' ')+'…' : 'Contract'}</div>
+            <div class="badge ${isPos?'pos':'neg'}">${isPos?'+':''}${Number(pnl).toFixed(2)}</div>
+          </div>
+          <div class="row">
+            <div class="muted">Entry</div><div>${c.entry_tick ? Number(c.entry_tick).toFixed(5) : '—'}</div>
+          </div>
+          <div class="row">
+            <div class="muted">Current</div><div>${c.current_spot ? Number(c.current_spot).toFixed(5) : '—'}</div>
+          </div>
+          <div class="row">
+            <div class="muted">Stake</div><div>${c.buy_price ? Number(c.buy_price).toFixed(2) : '—'}</div>
+          </div>
+          <div class="row">
+            <div class="muted">Payout</div><div>${c.payout ? Number(c.payout).toFixed(2) : '—'}</div>
+          </div>
+          <div class="row">
+            <div class="muted">ID</div><div class="muted">${c.contract_id}</div>
+          </div>
+        `;
+        tray.appendChild(el);
+      });
+    }
+
+    // ---------- Event bindings ----------
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLocal();
+      applySettingsToUI();
+
+      chart = new CandleChart($('#chartCanvas'));
+
+      $('#openSettings').addEventListener('click', () => openDrawer(true));
+      $('#closeSettings').addEventListener('click', () => openDrawer(false));
+
+      $('#saveSettings').addEventListener('click', () => {
+        state.endpoint = $('#endpoint').value.trim() || state.endpoint;
+        state.appId = Number($('#appId').value) || 1089;
+        state.token = $('#token').value.trim();
+        state.hideEndpoint = $('#hideEndpointToggle2').checked;
+        saveLocal();
+        applySettingsToUI();
+        showToast('Settings saved');
+      });
+
+      $('#testConnection').addEventListener('click', async () => {
+        const testUrl = new URL($('#endpoint').value || state.endpoint);
+        const appId = Number($('#appId').value) || 1089;
+        if (appId) testUrl.searchParams.set('app_id', String(appId));
+        try{
+          const ws = new WebSocket(testUrl.toString());
+          ws.onopen = () => { showToast('Test connection OK'); ws.close(); };
+          ws.onerror = () => { showToast('Test connection failed', 'error'); };
+        }catch(e){
+          showToast('Invalid endpoint', 'error');
+        }
+      });
+
+      $('#hideEndpointToggle').addEventListener('change', (e) => {
+        state.hideEndpoint = e.target.checked;
+        $('#hideEndpointToggle2').checked = state.hideEndpoint;
+        saveLocal();
+        updateEndpointPill();
+      });
+
+      $('#connectBtn').addEventListener('click', connect);
+      $('#disconnectBtn').addEventListener('click', disconnect);
+
+      $('#authorizeBtn').addEventListener('click', async () => {
+        if (!state.connected) { showToast('Connect first'); return; }
+        if (!state.token) { showToast('Add your token in Settings'); openDrawer(true); return; }
+        try{
+          await state.ws.authorize(state.token);
+          showToast('Authorized');
+          await loadPortfolio();
+        }catch(e){
+          showToast('Authorization failed', 'error');
+        }
+      });
+
+      $('#symbolSelect').addEventListener('change', (e) => {
+        state.symbol = e.target.value;
+        subscribeSymbol();
+      });
+      $('#granularity').addEventListener('change', (e) => {
+        state.chart.granularity = Number(e.target.value);
+        subscribeSymbol();
+      });
+
+      $('#styleCandles').addEventListener('click', () => {
+        state.chart.style = 'candles';
+        chart.setStyle('candles');
+        $('#styleCandles').classList.add('active');
+        $('#styleLine').classList.remove('active');
+      });
+      $('#styleLine').addEventListener('click', () => {
+        state.chart.style = 'line';
+        chart.setStyle('line');
+        $('#styleLine').classList.add('active');
+        $('#styleCandles').classList.remove('active');
+      });
+      $('#refreshChart').addEventListener('click', subscribeSymbol);
+
+      $('#clearTicker').addEventListener('click', () => $('#tickerList').innerHTML = '');
+      $('#pauseTicker').addEventListener('click', (e) => {
+        state.tickPaused = !state.tickPaused;
+        e.target.textContent = state.tickPaused ? 'Resume' : 'Pause';
+      });
+
+      // Auto-connect for convenience
+      // connect(); // Uncomment to auto-connect on page load
+    });
+
+    function openDrawer(open){
+      const d = $('#drawer');
+      d.classList.toggle('open', open);
+      d.setAttribute('aria-hidden', String(!open));
+    }
+  </script>
+</body>
+</html>
